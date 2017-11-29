@@ -35,9 +35,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             var foundCard;
             for(var i = 0; i < response.data.length; i++)
             {
-                if(response.data[i].title === args)
-                {
-                    foundCard = response.data[i].code;
+                if (response.data[i].title.indexOf( args ) > -1 ) {
+                    foundCard = response.data[i].code
                 }
             }
             return foundCard;
@@ -64,17 +63,15 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 })
                 break;
             case 'card':
-                var sanitaryArgs = message.substring(6, message.length);
-
                 xmlHttp.open("GET", "https://netrunnerdb.com/api/2.0/public/cards", false);
                 xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
                 xmlHttp.send();
                 var response = JSON.parse(xmlHttp.responseText);
 
-                var cardName = sanitaryArgs;
+                var cardName = message.substring(6, message.length);
                 var cardCode = findCard(cardName);
 
-                if (cardCode) {
+                if (cardName.length > 2 && cardCode) {
                     bot.sendMessage({
                         to: channelID,
                         message: 'https://netrunnerdb.com/card_image/' + cardCode + '.png'
@@ -83,7 +80,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 else{
                     bot.sendMessage({
                         to: channelID,
-                        message: 'Nothing found! Check your spelling!'
+                        message: 'Nothing found! Check your spelling! Minimum three characters! Caps matter!'
                     })
                 }
                 break;
