@@ -4,9 +4,6 @@ var auth = require('./auth.json');
 var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 var xmlHttp = new XMLHttpRequest();
 
-
-
-
 // Configure logger settings
 logger.remove(logger.transports.Console);
 logger.add(logger.transports.Console, {
@@ -35,13 +32,15 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         args = args.splice(1);
 
         function findCard(args){
-            for(var i = 0; i < response.length; i++)
+            var foundCard;
+            for(var i = 0; i < response.data.length; i++)
             {
-                if(response.data[i].title == args)
+                if(response.data[i].title === args)
                 {
-                    return response.data[i].code;
+                    foundCard = response.data[i].code;
                 }
             }
+            return foundCard;
         }
 
         switch(cmd) {
@@ -52,12 +51,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                     message: 'Pong!'
                 })
                 break;// Just add any case commands if you want to..
-            case 'hey':
-                bot.sendMessage({
-                    to: channelID,
-                    message: 'Hey cool dude!'
-                })
-                break;
             case 'discourage':
                 bot.sendMessage({
                     to: channelID,
@@ -71,21 +64,29 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 })
                 break;
             case 'card':
+                var sanitaryArgs = message.substring(6, message.length);
+
                 xmlHttp.open("GET", "https://netrunnerdb.com/api/2.0/public/cards", false);
                 xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
                 xmlHttp.send();
                 var response = JSON.parse(xmlHttp.responseText);
-                //console.log(response);
 
-                var cardName = args[0];
+                var cardName = sanitaryArgs;
                 var cardCode = findCard(cardName);
-                console.log(cardCode);
-                bot.sendMessage({
-                    to: channelID,
-                    message: 'https://netrunnerdb.com/card_image/' + cardCode + '.png'
-                })
-                break;
 
+                if (cardCode) {
+                    bot.sendMessage({
+                        to: channelID,
+                        message: 'https://netrunnerdb.com/card_image/' + cardCode + '.png'
+                    })
+                }
+                else{
+                    bot.sendMessage({
+                        to: channelID,
+                        message: 'Nothing found! Check your spelling!'
+                    })
+                }
+                break;
         }
     }
 });
