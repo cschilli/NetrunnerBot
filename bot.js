@@ -3,6 +3,8 @@ var logger = require('winston');
 var auth = require('./auth.json');
 var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 var xmlHttp = new XMLHttpRequest();
+var cardFoundCounter;
+var cleanedArray;
 
 // Configure logger settings
 logger.remove(logger.transports.Console);
@@ -31,12 +33,31 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         var cmd = args[0];
         args = args.splice(1);
 
-        function findCard(args){
+        function arrayUnique(arr) {
+            var cleaned = [];
+            arr.forEach(function(itm) {
+                var unique = true;
+                cleaned.forEach(function(itm2) {
+                    if (itm.title === itm2.title){
+                        unique = false;
+                    }
+                });
+                if (unique){
+                    cleaned.push(itm);
+                }
+            });
+            return cleaned;
+        }
+
+
+        function findCard(args, cleanArr){
             var foundCard;
-            for(var i = 0; i < response.data.length; i++)
+            cardFoundCounter = 0;
+            for(var i = 0; i < cleanArr.length; i++)
             {
-                if (response.data[i].title.indexOf( args ) > -1 ) {
-                    foundCard = response.data[i].code
+                if (cleanArr[i].title.indexOf( args ) > -1 ) {
+                    foundCard = cleanArr[i].code;
+                    cardFoundCounter++;
                 }
             }
             return foundCard;
@@ -68,22 +89,27 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 xmlHttp.send();
                 var response = JSON.parse(xmlHttp.responseText);
 
-                var cardName = message.substring(6, message.length);
-                var cardCode = findCard(cardName);
+                if (!cleanedArray){
+                    cleanedArray = arrayUnique(response.data);
+                }
 
-                if (cardName.length > 2 && cardCode) {
+                var cardName = message.substring(6, message.length);
+                if (cardName.length > 2) {
+                    var cardCode = findCard(cardName, cleanedArray);
+                }
+
+                if (cardFoundCounter === 1 && cardCode) {
                     bot.sendMessage({
                         to: channelID,
                         message: 'https://netrunnerdb.com/card_image/' + cardCode + '.png'
                     })
-                }
-                else{
+                }else {
                     bot.sendMessage({
                         to: channelID,
-                        message: 'Nothing found! Check your spelling! Minimum three characters! Caps matter!'
-                    })
-                }
-                break;
+                        message: 'Nothing found! Check your spelling and capitalization and remember I need at least 3 characters.'
+                        })
+                    }
+                    break;
         }
     }
 });
