@@ -5,7 +5,7 @@
   "main": "bot.js",
   "author": "Christopher Schilling",
   "dependencies": {
-    "discord.io": "^2.5.3",
+    "discord.io": "github:woor/discord.io#gateway_v6",
     "node": "^9.2.0",
     "winston": "^2.4.0",
     "xmlhttprequest": "^1.8.0"
