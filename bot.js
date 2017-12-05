@@ -5,6 +5,10 @@ var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 var xmlHttp = new XMLHttpRequest();
 var cardFoundCounter;
 var cleanedArray;
+var maximum = 1250;
+var minimum = 1;
+var response;
+var jsonResponse;
 
 // Configure logger settings
 logger.remove(logger.transports.Console);
@@ -23,6 +27,10 @@ bot.on('ready', function (evt) {
     logger.info(bot.username + ' - (' + bot.id + ')');
 });
 
+bot.on('disconnect', function(msg, code) {
+    if (code === 0) return console.error(msg);
+    bot.connect();
+});
 
 bot.on('message', function (user, userID, channelID, message, evt) {
     // Our bot needs to know if it will execute a command
@@ -33,7 +41,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         var cmd = args[0];
         args = args.splice(1);
 
-        function arrayUnique(arr) {
+        function cleanCardArray(arr) {
             var cleaned = [];
             arr.forEach(function(itm) {
                 var unique = true;
@@ -49,13 +57,26 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             return cleaned;
         }
 
+        function getCards(){
+            xmlHttp.open("GET", "https://netrunnerdb.com/api/2.0/public/cards", false);
+            xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xmlHttp.send();
+            jsonResponse = JSON.parse(xmlHttp.responseText);
+            return jsonResponse;
+        }
+
 
         function findCard(args, cleanArr){
             var foundCard;
             cardFoundCounter = 0;
             for(var i = 0; i < cleanArr.length; i++)
             {
-                if (cleanArr[i].title.indexOf( args ) > -1 ) {
+                if (cleanArr[i].title.toLowerCase() === args.toLowerCase()){
+                    foundCard = cleanArr[i].code;
+                    cardFoundCounter = 1;
+                    break;
+                }
+                else if (cleanArr[i].title.toLowerCase().indexOf( args.toLowerCase() ) > -1 ) {
                     foundCard = cleanArr[i].code;
                     cardFoundCounter++;
                 }
@@ -83,14 +104,26 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                     message: 'You are simply the best, ' + args[0] + '!'
                 })
                 break;
-            case 'card':
-                xmlHttp.open("GET", "https://netrunnerdb.com/api/2.0/public/cards", false);
-                xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-                xmlHttp.send();
-                var response = JSON.parse(xmlHttp.responseText);
+            case 'random':
+                response = getCards();
+
+                var randomNumber = Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
 
                 if (!cleanedArray){
-                    cleanedArray = arrayUnique(response.data);
+                    cleanedArray = cleanCardArray(response.data);
+                }
+
+                bot.sendMessage({
+                    to: channelID,
+                    message: 'https://netrunnerdb.com/card_image/' + cleanedArray[randomNumber].code + '.png'
+                })
+                break;
+            case 'card':
+                //  REST calls for getting list of cards
+                response = getCards();
+
+                if (!cleanedArray){
+                    cleanedArray = cleanCardArray(response.data);
                 }
 
                 var cardName = message.substring(6, message.length);
@@ -106,10 +139,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 }else {
                     bot.sendMessage({
                         to: channelID,
-                        message: 'Nothing found! Check your spelling and capitalization and remember I need at least 3 characters.'
-                        })
-                    }
-                    break;
+                        message: 'Be more specific.'
+                    })
+                }
+                break;
         }
     }
 });
